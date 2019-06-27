@@ -1,0 +1,43 @@
+1. 
+    functions in main.c. So all the bootstrap() calls    
+
+2.
+    DUMDVM vm_bootstrap() does nothing??
+
+3.
+    Sync primitives are semaphore and spinlock. semaphore is mutex with count (so up to n can use
+    the lock at the same time). Spinlock is single thread busy polling
+
+4.
+    From thread.h -> thread_fork()
+
+5.
+    kprintf() from lib.h
+    low level kernel print statement are useful. Can also use panic() and badassert() for
+    testing different paths
+
+6.
+    copyin is usersp -> kernsp copying and copyout is vice-versa
+
+
+7. 
+    terminated thread that hasnt been cleaned up yet.
+
+8.
+    sleep is for designated time after which it will wake up (reduced cpu usage if no other threads)
+    yield lets other threads run if there are any, but if not the current thread will be
+    rescheduled again (100% cpu usage)
+
+9.
+    Machine dependent code relies on how the underlying system/hardware is setup as it is making
+    driver calls. Needs understanding of underlying implementation
+    Machine independent code is system agnostic and can be run on different systems/machines
+    as the implementation layer has been abstracted away
+
+10.
+    in cpu.c cpu_irqoff() and cpu_irqon() used to turn ir off and on.
+    They use volatile memory pointed at register12 on cpu0. They change the status
+    of the global interrupt control flag 'IEC' aka 'interrupt enable current' using GET/SET.
+    
+    Its not enough in multiprocesser/multi core systems and other processors are running in parallel.
+    In that case you would need mutexs/semaphores to guarantee mutual exclusion.
