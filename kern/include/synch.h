@@ -77,6 +77,12 @@ struct lock {
         HANGMAN_LOCKABLE(lk_hangman);   /* Deadlock detector hook. */
         // add what you need here
         // (don't forget to mark things volatile as needed)
+
+        // TODO: why is lk_wchan a pointer and lk_spinlock not a pointer?
+        struct wchan *lk_wchan;
+        struct spinlock lk_spinlock;
+        struct thread *lk_thread;
+        volatile bool is_locked;
 };
 
 struct lock *lock_create(const char *name);
