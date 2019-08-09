@@ -1,0 +1,25 @@
+4.3.1
+    1. Causes the current thread to exit. Dynamically allocated structs within the thread should be cleaned up before (in this implementation). After which it 
+      will have to be destroyed (thread_destroy(thr) ).
+      decr thread count
+      notify anyone interested
+      When a thread sleeps, its is unscheduled for the set amount of time. This means it is queued on the wait channel. Sleeping threads cant be exited, as
+      exit has to called by a running thread.
+      S_RUN/S_READY -> S_SLEEP
+    2. thread_switch handles context switch. switchframe_switch does the switch at the assembly level.
+    3. S_RUN    -> Thread is currently running
+       S_READY  -> Ready to run if cpu becomes idle or current thread is put to sleep or context switch happens
+       S_SLEEP  -> Thread is sleeping, wont be run/ready until sleep times runs out
+       S_ZOMBIE -> thread has been exited, but not destroyed yet
+    4. Turning interrupts off means to set priority level (spl) to its highest state. Nothing can interrupt the current flow until interrupts are enabled again
+      This is important in the thread subsystem when exiting threads, so that the current thread's state can be set to zombie and the next thread can be queued
+      without getting interrupted in the middle.
+    5. You call wchan_wakeone, which pulls a thread off the wait_channel, and makes that thread state to S_READY. If the cpu that thread is in is idle, send UNIDLE
+      interrupt to that cpu
+    6. thread_switch and  (removes top of thread list), schedule
+    7. FIFO, threadlist_remhead
+    8. Implementation in clock.c. Every 4 cycles it calls schedule and every 16 cycles it migrates threads
+    9. Schedule is called from timer interrupts, thread_consider_migration
+    10.P() calls wchan_sleep if the count is 0. V() increments the count and calls wchan_wakeone to wake up one of the sleeping threads, so that they can
+      acquire the semaphore.
+    11.
