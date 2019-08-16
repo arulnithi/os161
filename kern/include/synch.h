@@ -164,7 +164,7 @@ struct rwlock {
         struct cv *rw_writer;
         struct lock *lock;
         // maybe something here for maintaining count of waiting r/w
-        volatile bool reading;
+        volatile int reading;
         volatile bool writing;
         volatile int writer_waiting;
         volatile bool reader_waiting;
