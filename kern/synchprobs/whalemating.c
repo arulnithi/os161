@@ -40,11 +40,26 @@
 #include <test.h>
 #include <synch.h>
 
+struct semaphore *male_sem;
+struct semaphore *female_sem;
+struct semaphore *match_sem;
+volatile int male_waiting;
+volatile int female_waiting;
+volatile int match_waiting;
+struct lock *whalemating_lock;
 /*
  * Called by the driver during initialization.
  */
 
 void whalemating_init() {
+	male_sem = sem_create("male_sem", 0);
+	female_sem = sem_create("female_sem", 0);
+	match_sem = sem_create("match_sem", 0);
+	whalemating_lock = lock_create("whalemating_lock");
+	//TODO: panic if any of these aren't created
+	male_waiting = 0;
+	female_waiting = 0;
+	match_waiting = 0;
 	return;
 }
 
@@ -54,38 +69,87 @@ void whalemating_init() {
 
 void
 whalemating_cleanup() {
+	sem_destroy(male_sem);
+	sem_destroy(female_sem);
+	sem_destroy(match_sem);
+	lock_destroy(whalemating_lock);
 	return;
 }
 
 void
 male(uint32_t index)
 {
-	(void)index;
 	/*
 	 * Implement this function by calling male_start and male_end when
 	 * appropriate.
 	 */
+	male_start(index);
+	lock_acquire(whalemating_lock);
+	if (female_waiting > 0 && match_waiting > 0) {
+		V(female_sem);
+		V(match_sem);
+		lock_release(whalemating_lock);
+		male_end(index);
+	} else {
+		male_waiting++;
+		lock_release(whalemating_lock);
+		P(male_sem);
+		lock_acquire(whalemating_lock);
+		male_waiting--;
+		lock_release(whalemating_lock);
+		male_end(index);
+	}
 	return;
 }
 
 void
 female(uint32_t index)
 {
-	(void)index;
 	/*
 	 * Implement this function by calling female_start and female_end when
 	 * appropriate.
 	 */
+	female_start(index);
+	lock_acquire(whalemating_lock);
+	if (male_waiting > 0 && match_waiting > 0) {
+		V(male_sem);
+		V(match_sem);
+		lock_release(whalemating_lock);
+		female_end(index);
+	} else {
+		female_waiting++;
+		lock_release(whalemating_lock);
+		P(female_sem);
+		lock_acquire(whalemating_lock);
+		female_waiting--;
+		lock_release(whalemating_lock);
+		female_end(index);
+	}
 	return;
 }
 
 void
 matchmaker(uint32_t index)
 {
-	(void)index;
 	/*
 	 * Implement this function by calling matchmaker_start and matchmaker_end
 	 * when appropriate.
 	 */
+	matchmaker_start(index);
+	lock_acquire(whalemating_lock);
+	if (female_waiting > 0 && male_waiting > 0) {
+		V(female_sem);
+		V(male_sem);
+		lock_release(whalemating_lock);
+		matchmaker_end(index);
+	} else {
+		match_waiting++;
+		lock_release(whalemating_lock);
+		P(match_sem);
+		lock_acquire(whalemating_lock);
+		match_waiting--;
+		lock_release(whalemating_lock);
+		matchmaker_end(index);
+	}
 	return;
 }
