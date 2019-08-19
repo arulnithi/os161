@@ -69,50 +69,106 @@
 #include <test.h>
 #include <synch.h>
 
+struct lock *quad_zero;
+struct lock *quad_one;
+struct lock *quad_two;
+struct lock *quad_three;
+struct semaphore *intersection_sem;
 /*
  * Called by the driver during initialization.
  */
 
 void
 stoplight_init() {
+	quad_zero = lock_create("quad_zero");
+	quad_one = lock_create("quad_one");
+	quad_two = lock_create("quad_two");
+	quad_three = lock_create("quad_three");
+	intersection_sem = sem_create("intersection_sem", 3);
+
 	return;
 }
+
+struct lock * get_quadrant_lock(uint32_t quadrant) {
+	switch (quadrant)
+	{
+	case 0:
+		return quad_zero;
+	case 1:
+		return quad_one;
+	case 2:
+		return quad_two;
+	case 3:
+		return quad_three;
+	default:
+		panic("Called get_direction_lock with invalid quadrant: %d", quadrant);
+	}
+} 
 
 /*
  * Called by the driver during teardown.
  */
 
 void stoplight_cleanup() {
+	lock_destroy(quad_zero);
+	lock_destroy(quad_one);
+	lock_destroy(quad_two);
+	lock_destroy(quad_three);
+	sem_destroy(intersection_sem);
 	return;
 }
 
 void
 turnright(uint32_t direction, uint32_t index)
 {
-	(void)direction;
-	(void)index;
 	/*
 	 * Implement this function.
 	 */
+	P(intersection_sem);
+	lock_acquire(get_quadrant_lock(direction));
+	inQuadrant(direction, index);
+	leaveIntersection(index);
+	lock_release(get_quadrant_lock(direction));
+	V(intersection_sem);
 	return;
 }
 void
 gostraight(uint32_t direction, uint32_t index)
 {
-	(void)direction;
-	(void)index;
 	/*
 	 * Implement this function.
 	 */
+	P(intersection_sem);
+	lock_acquire(get_quadrant_lock(direction));
+	inQuadrant(direction, index);
+	int nextQuadrant = (direction + 3) % 4;
+	lock_acquire(get_quadrant_lock(nextQuadrant));
+	inQuadrant(nextQuadrant, index);
+	lock_release(get_quadrant_lock(direction));
+	leaveIntersection(index);
+	lock_release(get_quadrant_lock(nextQuadrant));
+	V(intersection_sem);
 	return;
 }
 void
 turnleft(uint32_t direction, uint32_t index)
 {
-	(void)direction;
-	(void)index;
 	/*
 	 * Implement this function.
 	 */
+	P(intersection_sem);
+	lock_acquire(get_quadrant_lock(direction));
+	inQuadrant(direction, index);
+	int nextQuadrant = (direction + 3) % 4;
+	lock_acquire(get_quadrant_lock(nextQuadrant));
+	inQuadrant(nextQuadrant, index);
+	lock_release(get_quadrant_lock(direction));
+	int lastQuadrant = (direction + 2) % 4;
+	lock_acquire(get_quadrant_lock(lastQuadrant));
+	inQuadrant(lastQuadrant, index);
+	lock_release(get_quadrant_lock(nextQuadrant));
+	leaveIntersection(index);
+	lock_release(get_quadrant_lock(lastQuadrant));
+	V(intersection_sem);
 	return;
 }
